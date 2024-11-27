@@ -1,14 +1,11 @@
 package com.example.firebase
 
 import android.os.Bundle
-import android.provider.ContactsContract.Data
 import android.util.Log
-import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ListView
 import android.widget.SimpleAdapter
-import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
@@ -25,7 +22,7 @@ class MainActivity : AppCompatActivity() {
 
     var data: MutableList<Map<String, String>> = ArrayList()
 
-     override fun onCreate(savedInstanceState: Bundle?) {
+    override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(R.layout.activity_main)
@@ -41,7 +38,7 @@ class MainActivity : AppCompatActivity() {
 
         _etProvinsi = findViewById<EditText>(R.id.etProvinsi)
         _etIbukota = findViewById<EditText>(R.id.etIbuKota)
-        val _btSimpan = findViewById<Button>(R.id.btnSimpan)
+        val _btnSimpan = findViewById<Button>(R.id.btnSimpan)
         val _lvData = findViewById<ListView>(R.id.lvData)
 
         lvAdapter = SimpleAdapter(
@@ -51,14 +48,15 @@ class MainActivity : AppCompatActivity() {
             arrayOf<String>("Pro", "Ibu"),
             intArrayOf(
                 android.R.id.text1,
-                android.R.id.text2)
+                android.R.id.text2
+            )
         )
-        _lvData.adapter = lvAdapter
 
         fun TambahData(db: FirebaseFirestore, Provinsi: String, Ibukota: String) {
             val dataBaru = daftarProvinsi(Provinsi, Ibukota)
             db.collection("tbProvinsi")
-                .add(dataBaru)
+                .document(dataBaru.provinsi)
+                .set(dataBaru)
                 .addOnSuccessListener {
                     _etProvinsi.setText("")
                     _etIbukota.setText("")
@@ -80,7 +78,7 @@ class MainActivity : AppCompatActivity() {
                         )
                         DataProvinsi.add(readData)
                         data.clear()
-                        DataProvinsi.forEach{
+                        DataProvinsi.forEach {
                             val dt: MutableMap<String, String> = HashMap(2)
                             dt["Pro"] = it.provinsi
                             dt["Ibu"] = it.ibukota
@@ -94,7 +92,26 @@ class MainActivity : AppCompatActivity() {
                 }
         }
 
-        val _btnSimpan = findViewById<Button>(R.id.btnSimpan)
+        _lvData.adapter = lvAdapter
+
+        _lvData.setOnItemLongClickListener { parent, view, position, id ->
+            val namaPro = data[position].get("Pro")
+            if (namaPro != null) {
+                db.collection("tbProvinsi")
+                    .document(namaPro)
+                    .delete()
+                    .addOnSuccessListener {
+                        Log.d("Firebase", "Berhasil Dihapus")
+                        readData(db)
+                    }
+                    .addOnFailureListener { e ->
+                        Log.w("Firebase", e.message.toString())
+
+                    }
+            }
+            true
+        }
+
         _btnSimpan.setOnClickListener {
             TambahData(
                 db,
